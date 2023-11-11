@@ -1,8 +1,11 @@
-streamlit
-streamlit-chat
-python-dotenv
-PyPDF2
 langchain
-huggingface-hub
+torch
+accelerate
 transformers
-faiss
+sentence_transformers
+streamlit
+streamlit_chat
+faiss-cpu
+altair
+tiktoken
+huggingface-hub
