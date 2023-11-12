@@ -10,6 +10,8 @@ from langchain.chains import ConversationalRetrievalChain
 from template import css, bot_template, user_template
 from langchain.llms import HuggingFaceHub, CTransformers
 
+DB_FAISS_PATH = 'Vectorstore/db_faiss'
+
 def get_pdf_text(pdf_docs):
     text = ""
     for pdf in pdf_docs:
@@ -32,6 +34,13 @@ def get_vectorstore(text_chunks):
                                    model_kwargs={'device':'cpu'})
     vectorstore = FAISS.from_texts(texts=text_chunks,embedding=embeddings)
     return vectorstore
+
+def get_demo_vectorstore(DB_FAISS_PATH):
+    embeddings = HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2",
+                                   model_kwargs={'device':'cpu'})
+    vectorstore = FAISS.load_local(DB_FAISS_PATH, embeddings)
+    return vectorstore
+
 
 def get_conversation_chain(vectorstore):
     llm = HuggingFaceHub(repo_id="google/flan-t5-xxl", model_kwargs={"temperature":0.5, "max_length":512})
@@ -70,17 +79,22 @@ def main():
     with st.sidebar:
         st.subheader("Your documents")
         pdf_docs = st.file_uploader("Upload your pdfs here",accept_multiple_files=True)
+        st.markdown("**If you don't have a PDF to upload, just press 'Process'. It has data based on the [Constitution_BillOfRights.pdf](https://www.constitutionfacts.com/content/constitution/files/Constitution_BillOfRights.pdf)**")
         if st.button("Process"):
             with st.spinner("Processing"):
-                raw_text = get_pdf_text(pdf_docs)
-                
-                text_chunks = get_text_chunks(raw_text)
-                
-                vectorstore = get_vectorstore(text_chunks)
+                if len(pdf_docs) ==0 :
+                    demo_vectorstore = get_demo_vectorstore(DB_FAISS_PATH)
+                    st.session_state.conversation = get_conversation_chain(demo_vectorstore)
+                else:
+                    raw_text = get_pdf_text(pdf_docs)
+                    
+                    text_chunks = get_text_chunks(raw_text)
+                    
+                    vectorstore = get_vectorstore(text_chunks)
 
-                st.session_state.conversation = get_conversation_chain(vectorstore)
+                    st.session_state.conversation = get_conversation_chain(vectorstore)
                 
-    user_question = st.text_input("Enter the questions")
+    user_question = st.text_input("Enter the questions",placeholder="Example: What is the first amendment?")
     if user_question:
         handle_userinput(user_question)
         
